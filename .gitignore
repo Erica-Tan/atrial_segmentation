@@ -1,0 +1,32 @@
+# Editor directories
+.vscode
+.idea/
+
+# Byte-compiled
+__pycache__/
+
+# Pyinstaller files
+build/
+dist/
+*.spec
+
+.ipynb_checkpoints/
+
+runs/
+outputs/
+data/
+pretrained_models/
+mlruns/
+
+
+*UtahWaikato_model
+*UtahWaikatoROI_model
+
+
+command_hpc
+
+
+*.ipynb
+triton
+
+publication
