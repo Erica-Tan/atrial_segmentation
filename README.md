@@ -11,16 +11,14 @@ pip install -r requirements.txt
 ## Dataset
 
 
-The training data is from the [LAScarQS 2022 dataset]https://zmiclab.github.io/projects/lascarqs22/data.html . Datasets used are 3D cardiac LGE-MRIs from 3 centers,
+The training data is from the [LAScarQS 2022 dataset](https://zmiclab.github.io/projects/lascarqs22/data.html) . Datasets used are 3D cardiac LGE-MRIs from 3 centers,
 - Target: 1. LA scar, 2. LA endo.
 - Task: Segmentation
 - Modality: LGE-MRI
 - Size: 3D volumes
 
 
-We provide the json file that is used to train our models in the following link:
-
-https://github.com/Erica-Tan/atrial_segmentation/releases/download/V1/create_lascar_json.json
+We provide the json file that is used to train our models [dataset_lascar.json](https://github.com/Erica-Tan/atrial_segmentation/releases/download/V1/dataset_lascar.json)
 
 
 Once the json file is downloaded, please place it in the same folder as the data.
