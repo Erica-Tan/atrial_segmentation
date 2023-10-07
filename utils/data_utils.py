@@ -17,163 +17,23 @@ from utils.utils import (
     load_datalist,
     ConvertToMultiChannelBasedOnClassesd
 )
-from datasets.dim2.dataset_utah import UtahDataset
 from datasets.dim3.dataset_btcv import BTCVDataset
 from datasets.dim2.dataset_lascar import LAScarDataset
-from datasets.dim2.dataset_waikato import WaikatoDataset
 
 
 def get_loader(args):
     if args.spatial_dims == 2:
-        if args.dataset == 'utah':
-            return get_utah_loader(args)
-        elif args.dataset == 'waikato':
-            return get_waikato_loader(args)
-        elif args.dataset == 'lascar':
+        if args.dataset == 'lascar':
             return get_lascar_loader(args)
         else:
             raise ValueError(f"Unsupported Dataset: 2d {args.dataset}")
     elif args.spatial_dims == 3:
-        if args.dataset == 'utah':
-            return get_utah_3d_loader(args)
-        elif args.dataset == 'waikato':
-            return get_waikato_3d_loader(args)
-        elif args.dataset == 'btcv':
+        if args.dataset == 'btcv':
             return get_btcv_3d_loader(args)
         else:
             raise ValueError(f"Unsupported Dataset: 3d {args.dataset}")
     else:
         raise ValueError('Invalid dimension, should be \'2d\' or \'3d\'')
-
-
-def get_utah_loader(args):
-    data_dir = args.data_dir
-    datalist_json = args.json_list
-
-    tr_transforms = []
-    val_transform = []
-
-    if args.transform == 'randomcrop':
-        tr_transforms.append(A.RandomScale(p=0.2))
-        tr_transforms.append(A.RandomCrop(args.roi_x, args.roi_y))
-    elif args.transform == 'centercrop':
-        tr_transforms.append(A.CenterCrop(args.roi_x, args.roi_y))
-        val_transform.append(A.CenterCrop(args.roi_x, args.roi_y))
-    elif args.transform == 'resize':
-        tr_transforms.append(A.Resize(width=args.roi_x, height=args.roi_y))
-        val_transform.append(A.Resize(width=args.roi_x, height=args.roi_y))
-    else:
-        raise ValueError('Invalid transform')
-
-    tr_transforms.extend([
-            A.OneOf([
-                A.Rotate(limit=[-20, 20], border_mode=cv2.BORDER_CONSTANT),
-                A.HorizontalFlip(),
-                A.VerticalFlip(),
-                # A.ElasticTransform(p=0.5),
-                # A.GaussNoise(var_limit=[0, 0.1]),
-                # A.GaussianBlur(),
-                # A.RandomBrightnessContrast()
-            ]),
-            A.Normalize(mean=0.22, std=0.23, max_pixel_value=1),
-            EnsureChannelFirst(),
-            ConvertToMultiChannel(),
-            ToTensor()
-        ])
-
-    val_transform.extend([
-            A.Normalize(mean=0.22, std=0.24, max_pixel_value=1),
-            EnsureChannelFirst(),
-            ConvertToMultiChannel(),
-            ToTensor()
-        ])
-
-    train_transform = A.Compose(tr_transforms)
-    val_transform = A.Compose(val_transform)
-
-    if args.test_mode:
-        test_files = load_datalist(datalist_json, True, "testing", base_dir=data_dir)
-        test_ds = UtahDataset(data=test_files, transform=val_transform, mode='test')
-        test_sampler = Sampler(test_ds, shuffle=False) if args.distributed else None
-        test_loader = DataLoader(
-            test_ds,
-            batch_size=1,
-            shuffle=False,
-            num_workers=args.workers,
-            sampler=test_sampler,
-            pin_memory=True,
-            persistent_workers=True,
-        )
-        loader = test_loader
-    else:
-        datalist = load_datalist(datalist_json, True, "training", base_dir=data_dir)
-        train_ds = UtahDataset(data=datalist, transform=train_transform, mode='train')
-        train_sampler = Sampler(train_ds) if args.distributed else None
-        train_loader = DataLoader(
-            train_ds,
-            batch_size=args.batch_size,
-            shuffle=(train_sampler is None),
-            num_workers=args.workers,
-            sampler=train_sampler,
-            pin_memory=True,
-            persistent_workers=True,
-        )
-
-        val_files = load_datalist(datalist_json, True, "validation", base_dir=data_dir)
-        val_ds = UtahDataset(data=val_files, transform=val_transform, mode='test')
-        val_sampler = Sampler(val_ds, shuffle=False) if args.distributed else None
-        val_loader = DataLoader(
-            val_ds,
-            batch_size=1,
-            shuffle=False,
-            num_workers=args.workers,
-            sampler=val_sampler,
-            pin_memory=True,
-            persistent_workers=True,
-        )
-        loader = (train_loader, val_loader)
-
-    return loader
-
-
-def get_waikato_loader(args):
-    data_dir = args.data_dir
-    datalist_json = args.json_list
-
-    val_transform = []
-
-    if args.transform == 'centercrop':
-        val_transform.append(A.CenterCrop(args.roi_x, args.roi_y))
-    elif args.transform == 'resize':
-        val_transform.append(A.Resize(width=args.roi_x, height=args.roi_y))
-
-    val_transform.extend([
-            A.Normalize(mean=0.22, std=0.24, max_pixel_value=1),
-            EnsureChannelFirst(),
-            ConvertToMultiChannel(),
-            ToTensor()
-        ])
-
-    val_transform = A.Compose(val_transform)
-
-    if args.test_mode:
-        test_files = load_datalist(datalist_json, True, "testing", base_dir=data_dir)
-        test_ds = WaikatoDataset(data=test_files, transform=val_transform, mode='test')
-        test_sampler = Sampler(test_ds, shuffle=False) if args.distributed else None
-        test_loader = DataLoader(
-            test_ds,
-            batch_size=1,
-            shuffle=False,
-            num_workers=args.workers,
-            sampler=test_sampler,
-            pin_memory=True,
-            persistent_workers=True,
-        )
-        loader = test_loader
-    else:
-        raise ValueError(f"Unsupported Dataset Mode: {args.dataset} {args.test_mode}")
-
-    return loader
 
 
 def get_lascar_loader(args):
@@ -215,140 +75,6 @@ def get_lascar_loader(args):
 
     return loader
 
-
-def get_utah_3d_loader(args):
-    data_dir = args.data_dir
-    datalist_json = args.json_list
-
-    train_transform = transforms.Compose(
-        [
-            transforms.LoadImaged(keys=["image", "label"]),
-            # transforms.LoadImaged(keys=["image", "label"], reader="itkreader", reverse_indexing=True),
-            transforms.EnsureChannelFirstd(keys="image"),
-            ConvertToMultiChannelBasedOnClassesd(keys="label"),
-
-            # transforms.Spacingd(
-            #     keys=["image", "label"], pixdim=(args.space_x, args.space_y, args.space_z), mode=("bilinear", "nearest")
-            # ),
-
-            transforms.CropForegroundd(keys=["image", "label"], source_key="image"),
-            transforms.RandCropByPosNegLabeld(
-                keys=["image", "label"],
-                label_key="label",
-                spatial_size=(args.roi_x, args.roi_y, args.roi_z),
-                pos=1,
-                neg=1,
-                num_samples=4,
-                image_key="image",
-                image_threshold=0,
-            ),
-            # transforms.RandZoomd(keys=["image", "label"], min_zoom=0.9, max_zoom=1.2, mode=("trilinear", "nearest"),
-            #                      align_corners=(True, None), prob=0.1),
-            # transforms.RandGaussianNoised(keys="image", std=0.01, prob=0.1),
-            # transforms.RandGaussianSmoothd(keys=["image"], sigma_x=(0.5, 1.15), sigma_y=(0.5, 1.15),
-            #                                sigma_z=(0.5, 1.15), prob=0.1),
-
-            transforms.RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=0),
-            transforms.RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=1),
-            transforms.RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=2),
-
-            transforms.NormalizeIntensityd(keys="image", nonzero=True, channel_wise=False),
-            transforms.RandScaleIntensityd(keys="image", factors=0.1, prob=0.1),
-            transforms.RandShiftIntensityd(keys="image", offsets=0.1, prob=0.1),
-            transforms.ToTensord(keys=["image", "label"]),
-        ]
-    )
-    val_transform = transforms.Compose(
-        [
-            transforms.LoadImaged(keys=["image", "label"]),
-            # transforms.LoadImaged(keys=["image", "label"], reader="itkreader", reverse_indexing=True),
-            transforms.EnsureChannelFirstd(keys="image"),
-            ConvertToMultiChannelBasedOnClassesd(keys="label"),
-            transforms.NormalizeIntensityd(keys="image", nonzero=True, channel_wise=False),
-            transforms.ToTensord(keys=["image", "label"]),
-        ]
-    )
-    if args.test_mode:
-        test_files = load_datalist(datalist_json, True, "testing", base_dir=data_dir)
-        test_ds = data.Dataset(data=test_files, transform=val_transform)
-        test_sampler = Sampler(test_ds, shuffle=False) if args.distributed else None
-        test_loader = data.DataLoader(
-            test_ds,
-            batch_size=1,
-            shuffle=False,
-            num_workers=args.workers,
-            sampler=test_sampler,
-            pin_memory=True,
-            persistent_workers=True,
-        )
-        loader = test_loader
-    else:
-        datalist = load_datalist(datalist_json, True, "training", base_dir=data_dir)
-        if args.use_normal_dataset:
-            train_ds = data.Dataset(data=datalist, transform=train_transform)
-        else:
-            train_ds = data.CacheDataset(
-                data=datalist, transform=train_transform, cache_num=24, cache_rate=1.0, num_workers=args.workers
-            )
-        train_sampler = Sampler(train_ds) if args.distributed else None
-        train_loader = data.DataLoader(
-            train_ds,
-            batch_size=args.batch_size,
-            shuffle=(train_sampler is None),
-            num_workers=args.workers,
-            sampler=train_sampler,
-            pin_memory=True,
-            persistent_workers=True,
-        )
-        val_files = load_datalist(datalist_json, True, "validation", base_dir=data_dir)
-        val_ds = data.Dataset(data=val_files, transform=val_transform)
-        val_sampler = Sampler(val_ds, shuffle=False) if args.distributed else None
-        val_loader = data.DataLoader(
-            val_ds,
-            batch_size=1,
-            shuffle=False,
-            num_workers=args.workers,
-            sampler=val_sampler,
-            pin_memory=True,
-            persistent_workers=True,
-        )
-        loader = [train_loader, val_loader]
-
-    return loader
-
-
-def get_waikato_3d_loader(args):
-    data_dir = args.data_dir
-    datalist_json = args.json_list
-
-    val_transform = transforms.Compose(
-        [
-            transforms.LoadImaged(keys=["image", "label"]),
-            # transforms.LoadImaged(keys=["image", "label"], reader="itkreader", reverse_indexing=True),
-            transforms.EnsureChannelFirstd(keys="image"),
-            ConvertToMultiChannelBasedOnClassesd(keys="label"),
-            transforms.NormalizeIntensityd(keys="image", nonzero=True, channel_wise=False),
-            transforms.ToTensord(keys=["image", "label"]),
-        ]
-    )
-    if args.test_mode:
-        test_files = load_datalist(datalist_json, True, "testing", base_dir=data_dir)
-        test_ds = data.Dataset(data=test_files, transform=val_transform)
-        test_sampler = Sampler(test_ds, shuffle=False) if args.distributed else None
-        test_loader = data.DataLoader(
-            test_ds,
-            batch_size=1,
-            shuffle=False,
-            num_workers=args.workers,
-            sampler=test_sampler,
-            pin_memory=True,
-            persistent_workers=True,
-        )
-        loader = test_loader
-    else:
-        raise ValueError(f"Unsupported Dataset Mode: {args.dataset} {args.test_mode}")
-
-    return loader
 
 
 def get_btcv_3d_loader(args):
