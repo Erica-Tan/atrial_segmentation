@@ -1,6 +1,3 @@
-# import sys
-# sys.path.insert(0, '/media/erica/Data/Projects/research-contributions/AtriaNet')
-
 import glob
 import math
 import cv2
