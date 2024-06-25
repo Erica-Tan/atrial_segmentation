@@ -1,5 +1,5 @@
 # Automated atrial segmentation of 3D cardiac LGE-MRIs
-This repository contains the implementation of diferent architectures for atrial Segmentation
+This repository contains the implementation of different architectures for atrial Segmentation
 
 
 ### Installing Dependencies
